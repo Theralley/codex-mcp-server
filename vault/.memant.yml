@@ -2,3 +2,5 @@
 name: codex-mcp-server
 namespace: codex-mcp-server        # cross-vault links use [[codex-mcp-server/<page>]]
 shareable: true         # ONLY shareable project knowledge here — it travels with the repo (git)
+node_key: codex-mcp-server         # the node's STABLE identity — moving this repo must not change it
+repository_id: 63b28f88-6908-42c8-beee-89d9243d62b7  # immutable; a fork must rotate this, or it reads as a duplicate
