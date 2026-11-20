@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
 import chalk from 'chalk';
+import { readFileSync } from 'node:fs';
 import { CodexMcpServer } from './server.js';
 
 const SERVER_CONFIG = {
   name: 'codex-mcp-server',
-  version: '0.0.6',
+  version: (
+    JSON.parse(
+      readFileSync(new URL('../package.json', import.meta.url), 'utf8')
+    ) as { version: string }
+  ).version,
 } as const;
 
 async function main(): Promise<void> {

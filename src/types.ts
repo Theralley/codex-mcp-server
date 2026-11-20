@@ -10,32 +10,46 @@ export const TOOLS = {
   WEBSEARCH: 'websearch',
 } as const;
 
-export type ToolName = typeof TOOLS[keyof typeof TOOLS];
+export type ToolName = (typeof TOOLS)[keyof typeof TOOLS];
 
 // Codex model constants
-export const DEFAULT_CODEX_MODEL = 'gpt-5.3-codex' as const;
+export const DEFAULT_CODEX_MODEL = 'gpt-5.6-sol' as const;
 export const CODEX_DEFAULT_MODEL_ENV_VAR = 'CODEX_DEFAULT_MODEL' as const;
 
 // Available model options (for documentation/reference)
 export const AVAILABLE_CODEX_MODELS = [
-  'gpt-5.3-codex',
-  'gpt-5.2-codex',
-  'gpt-5.1-codex',
-  'gpt-5.1-codex-max',
-  'gpt-5-codex',
-  'gpt-4o',
-  'gpt-4',
-  'o3',
-  'o4-mini',
+  'gpt-6.2-sol',
+  'gpt-6.2-astra',
+  'gpt-6.1-terra',
+  'gpt-6.1-sol',
+  'gpt-6-astra',
+  'gpt-6-sol',
+  'gpt-6-luna',
+  'gpt-5.6-sol',
+  'gpt-5.6-terra',
+  'gpt-5.6-luna',
 ] as const;
+
+export const ReasoningEffort = z.enum([
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+  'ultra',
+]);
 
 // Helper function to generate model description
 export const getModelDescription = (toolType: 'codex' | 'review') => {
   const modelList = AVAILABLE_CODEX_MODELS.join(', ');
+  const defaultModel =
+    process.env[CODEX_DEFAULT_MODEL_ENV_VAR] || DEFAULT_CODEX_MODEL;
   if (toolType === 'codex') {
-    return `Specify which model to use (defaults to ${DEFAULT_CODEX_MODEL}). Options: ${modelList}`;
+    return `Specify which model to use (defaults to ${defaultModel}). Options: ${modelList}`;
   }
-  return `Specify which model to use for the review (defaults to ${DEFAULT_CODEX_MODEL})`;
+  return `Specify which model to use for the review (defaults to ${defaultModel})`;
 };
 
 // Tool annotations for MCP 2025-11-25 spec
@@ -96,20 +110,27 @@ export const CodexToolSchema = z.object({
     .string()
     .max(256, { error: 'Session ID must be 256 characters or fewer' })
     .regex(/^[a-zA-Z0-9_-]+$/, {
-      error: 'Session ID can only contain letters, numbers, hyphens, and underscores',
+      error:
+        'Session ID can only contain letters, numbers, hyphens, and underscores',
     })
     .optional(),
   resetSession: z.boolean().optional(),
   model: z.string().optional(),
-  reasoningEffort: z.enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh']).optional(),
+  reasoningEffort: ReasoningEffort.optional(),
   sandbox: SandboxMode.optional(),
   fullAuto: z.boolean().optional(),
   workingDirectory: z.string().optional(),
   callbackUri: z.string().optional(),
+  images: z.array(z.string().min(1)).optional(),
+  search: z.boolean().optional(),
+  outputSchema: z.string().min(1).optional(),
+  profile: z.string().min(1).optional(),
+  ephemeral: z.boolean().optional(),
 });
 
 // Review tool schema
 export const ReviewToolSchema = z.object({
+  reasoningEffort: ReasoningEffort.optional(),
   prompt: z.string().optional(),
   uncommitted: z.boolean().optional(),
   base: z.string().optional(),
@@ -123,7 +144,9 @@ export const PingToolSchema = z.object({
   message: z.string().optional(),
 });
 
-export const HelpToolSchema = z.object({});
+export const HelpToolSchema = z.object({
+  command: z.enum(['exec', 'resume', 'review', 'version']).optional(),
+});
 
 export const ListSessionsToolSchema = z.object({});
 
@@ -152,5 +175,9 @@ export type ProgressToken = string | number;
 // Context passed to tool handlers for sending progress notifications
 export interface ToolHandlerContext {
   progressToken?: ProgressToken;
-  sendProgress: (message: string, progress?: number, total?: number) => Promise<void>;
+  sendProgress: (
+    message: string,
+    progress?: number,
+    total?: number
+  ) => Promise<void>;
 }

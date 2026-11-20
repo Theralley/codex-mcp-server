@@ -18,5 +18,5 @@ configuration. `help` accepts version and command-specific help requests.
 Verification: 43 focused tests, TypeScript typecheck, changed-file lint and format,
 MCP tool discovery, ping, version and a real minimal Codex request passed. Full CI
 and a production build were unavailable because the remote build server was not
-reachable. Code changes remain local pending review; this page describes the
-local checkout rather than a published release.
+reachable. Implementation is committed in this fork. The standalone Codex CLI is updated
+separately with its own updater; no package release has been published.

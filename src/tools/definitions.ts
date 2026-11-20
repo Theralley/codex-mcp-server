@@ -1,4 +1,9 @@
-import { TOOLS, getModelDescription, type ToolDefinition } from '../types.js';
+import {
+  TOOLS,
+  ReasoningEffort,
+  getModelDescription,
+  type ToolDefinition,
+} from '../types.js';
 
 export const toolDefinitions: ToolDefinition[] = [
   {
@@ -27,9 +32,9 @@ export const toolDefinitions: ToolDefinition[] = [
         },
         reasoningEffort: {
           type: 'string',
-          enum: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+          enum: ReasoningEffort.options,
           description:
-            'Control reasoning depth (none < minimal < low < medium < high < xhigh)',
+            'Control reasoning depth (none < minimal < low < medium < high < xhigh < max < ultra; supported levels depend on the selected model)',
         },
         sandbox: {
           type: 'string',
@@ -46,6 +51,25 @@ export const toolDefinitions: ToolDefinition[] = [
           type: 'string',
           description:
             'Working directory for the agent to use as its root (passed via -C flag)',
+        },
+        images: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Local image paths to attach to the prompt',
+        },
+        search: { type: 'boolean', description: 'Enable live web search' },
+        outputSchema: {
+          type: 'string',
+          description: 'Local JSON Schema path for the final response',
+        },
+        profile: {
+          type: 'string',
+          description: 'Named Codex configuration profile',
+        },
+        ephemeral: {
+          type: 'boolean',
+          description:
+            'Do not persist the session; cannot be combined with sessionId',
         },
         callbackUri: {
           type: 'string',
@@ -79,7 +103,7 @@ export const toolDefinitions: ToolDefinition[] = [
         prompt: {
           type: 'string',
           description:
-            'Custom review instructions or focus areas (cannot be used with uncommitted=true; use base/commit review instead)',
+            'Custom review instructions or focus areas; cannot be combined with uncommitted, base, or commit',
         },
         uncommitted: {
           type: 'boolean',
@@ -94,6 +118,12 @@ export const toolDefinitions: ToolDefinition[] = [
         commit: {
           type: 'string',
           description: 'Review the changes introduced by a specific commit SHA',
+        },
+        reasoningEffort: {
+          type: 'string',
+          enum: ReasoningEffort.options,
+          description:
+            'Reasoning depth; supported levels depend on the selected model',
         },
         title: {
           type: 'string',
@@ -142,10 +172,17 @@ export const toolDefinitions: ToolDefinition[] = [
   },
   {
     name: TOOLS.HELP,
-    description: 'Get Codex CLI help information',
+    description: 'Get current Codex CLI help or installed version',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        command: {
+          type: 'string',
+          enum: ['exec', 'resume', 'review', 'version'],
+          description:
+            'Optional command help topic, or version for the installed revision',
+        },
+      },
       required: [],
     },
     annotations: {

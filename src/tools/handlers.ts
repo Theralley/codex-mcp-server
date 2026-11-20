@@ -54,7 +54,19 @@ export class CodexToolHandler {
         fullAuto,
         workingDirectory,
         callbackUri,
+        images,
+        search,
+        outputSchema,
+        profile,
+        ephemeral,
       }: CodexToolArgs = CodexToolSchema.parse(args);
+
+      if (ephemeral && sessionId) {
+        throw new ValidationError(
+          TOOLS.CODEX,
+          'ephemeral cannot be combined with sessionId'
+        );
+      }
 
       // Resolve to absolute path once so -C and spawn cwd agree
       const resolvedWorkDir = workingDirectory
@@ -130,13 +142,13 @@ export class CodexToolHandler {
         }
 
         // Add sandbox mode (v0.75.0+)
-        if (sandbox) {
-          cmdArgs.push('--sandbox', sandbox);
+        if (sandbox || fullAuto) {
+          cmdArgs.push('--sandbox', sandbox || 'workspace-write');
         }
 
         // Add full-auto mode (v0.75.0+)
         if (fullAuto) {
-          cmdArgs.push('--full-auto');
+          cmdArgs.push('-c', 'approval_policy="on-request"');
         }
 
         // Add working directory (v0.75.0+)
@@ -149,6 +161,29 @@ export class CodexToolHandler {
 
         cmdArgs.push(enhancedPrompt);
       }
+
+      // These options also apply to exec resume on current Codex versions.
+      // Insert options before the positional prompt (and resume id).
+      const optionIndex = useResume
+        ? cmdArgs.indexOf('resume') + 1
+        : cmdArgs.length - 1;
+      const extraOptions: string[] = [];
+      for (const image of images || [])
+        extraOptions.push(
+          '--image',
+          path.resolve(resolvedWorkDir || process.cwd(), image)
+        );
+      if (outputSchema)
+        extraOptions.push(
+          '--output-schema',
+          path.resolve(resolvedWorkDir || process.cwd(), outputSchema)
+        );
+
+      if (ephemeral) extraOptions.push('--ephemeral');
+      if (images?.length) extraOptions.push('--');
+      cmdArgs.splice(optionIndex, 0, ...extraOptions);
+      if (profile) cmdArgs.splice(1, 0, '--profile', profile);
+      if (search) cmdArgs.unshift('--search');
 
       // Send initial progress notification
       await context.sendProgress('Starting Codex execution...', 0);
@@ -311,9 +346,16 @@ export class HelpToolHandler {
     _context: ToolHandlerContext = defaultContext
   ): Promise<ToolResult> {
     try {
-      HelpToolSchema.parse(args);
-
-      const result = await executeCommand('codex', ['--help']);
+      const { command } = HelpToolSchema.parse(args);
+      const helpArgs =
+        command === 'version'
+          ? ['--version']
+          : command === 'resume'
+            ? ['exec', 'resume', '--help']
+            : command
+              ? [command, '--help']
+              : ['--help'];
+      const result = await executeCommand('codex', helpArgs);
 
       return {
         content: [
@@ -392,12 +434,24 @@ export class ReviewToolHandler {
         title,
         model,
         workingDirectory,
+        reasoningEffort,
       }: ReviewToolArgs = ReviewToolSchema.parse(args);
 
-      if (prompt && uncommitted) {
+      const targetCount = [
+        uncommitted === true,
+        Boolean(base),
+        Boolean(commit),
+      ].filter(Boolean).length;
+      if (targetCount > 1) {
         throw new ValidationError(
           TOOLS.REVIEW,
-          'The review prompt cannot be combined with uncommitted=true. Use a base/commit review or omit the prompt.'
+          'Choose only one review target: uncommitted, base, or commit'
+        );
+      }
+      if (prompt && targetCount > 0) {
+        throw new ValidationError(
+          TOOLS.REVIEW,
+          'The review prompt cannot be combined with uncommitted, base, or commit. Use a target or a custom prompt, not both.'
         );
       }
 
@@ -420,6 +474,8 @@ export class ReviewToolHandler {
         DEFAULT_CODEX_MODEL;
       cmdArgs.push('-c', `model="${selectedModel}"`);
 
+      if (reasoningEffort)
+        cmdArgs.push('-c', `model_reasoning_effort="${reasoningEffort}"`);
       cmdArgs.push('review');
 
       // Add review-specific flags

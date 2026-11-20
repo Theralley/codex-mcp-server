@@ -1,12 +1,14 @@
 {
   "mcpServers": {
-    "codex-cli": {
+    "codex-mcp": {
       "type": "stdio",
       "command": "node",
       "args": [
-        "dist/index.js"
+        "scripts/start-local.mjs"
       ],
-      "env": {}
+      "env": {
+        "CODEX_DEFAULT_MODEL": "gpt-6-astra"
+      }
     }
   }
 }

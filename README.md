@@ -128,3 +128,42 @@ npm test       # Run tests
 ## License
 
 ISC
+
+## Local checkout: Claude Code and Qwen Code
+
+Install dependencies with `npm ci`, then register the source launcher in either
+client's user-level `mcpServers` configuration. It runs the checkout directly with
+`tsx`, so local updates do not depend on stale files under `dist/`.
+
+```json
+{
+  "mcpServers": {
+    "codex-mcp": {
+      "command": "node",
+      "args": ["/absolute/path/to/codex-mcp-server/scripts/start-local.mjs"],
+      "env": { "CODEX_DEFAULT_MODEL": "gpt-6-astra" }
+    }
+  }
+}
+```
+
+Claude Code uses its user `.claude.json`; Qwen Code uses `~/.qwen/settings.json`.
+Reconnect the MCP server or restart the client after changing the configuration.
+Both clients get `codex`, `review`, `websearch`, `listSessions`, `ping`, and `help`.
+The existing model override remains supported; model availability and reasoning
+levels depend on the signed-in Codex account.
+
+Current CLI compatibility includes `max`/`ultra` reasoning (where supported),
+image attachments (`images`), live search (`search`), named configuration profiles
+(`profile`), response schemas (`outputSchema`), and temporary sessions
+(`ephemeral`, incompatible with `sessionId`). `review` also accepts
+`reasoningEffort`. Review targets (`uncommitted`, `base`, `commit`) are mutually
+exclusive and cannot be combined with a custom review prompt. For the latest
+commit, use `commit: "HEAD"`.
+
+Use `help` with `command: "version"` to inspect the installed Codex CLI revision,
+or `exec`, `resume`, or `review` for current command help. Update the CLI with
+`codex update`; update this checkout deliberately after reviewing upstream changes.
+`fullAuto` remains accepted and uses supported sandbox/approval configuration
+instead of the removed `--full-auto` flag. Existing resume behavior still omits
+sandbox, auto mode, and working-directory overrides.
